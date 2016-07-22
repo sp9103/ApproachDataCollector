@@ -50,6 +50,7 @@ int main(){
 			char objpath[256], filename[256];
 			sprintf(objpath, "%s\\RGB\\%d.bmp", dataDir, gestIdx);
 			cv::imshow(objpath, objImg);
+			cv::waitKey(1);
 			imwrite(objpath, objImg);						//rgb write
 			sprintf(objpath, "%s\\DEPTH", dataDir);
 			itoa(gestIdx, filename, 10);
@@ -74,6 +75,9 @@ int main(){
 				cv::Mat framepc = kinectManager.getPointCloud();
 				cv::Mat frameprocImg = tracker.calcImage(frameImg, frameDepth);
 
+				if(frameprocImg.rows == 0)	continue;
+
+				printf("[%d] data save.\n", count);
 				writeFrameData(gestDir, frameImg, frameDepth, framepc, frameprocImg, count++);
 
 				cv::imshow("proc", frameImg);
