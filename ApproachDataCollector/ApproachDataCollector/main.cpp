@@ -9,6 +9,7 @@
 void CreateDatadir(const char* dir);
 void writeDepthData(cv::Mat src, char* path, char* name);
 void writePointCloud(cv::Mat src, char* path, char* name);
+void CreateApproachDir(const char* dir);
 
 int main(){
 	KinectMangerThread kinectManager;
@@ -57,11 +58,15 @@ int main(){
 			writePointCloud(objpc, objpath, filename);
 
 			//2. 디렉토리 생성하고
-
+			char gestDir[256];
+			sprintf(gestDir, "%s\\APPROACH\\%d", dataDir, gestIdx);
+			CreateApproachDir(gestDir);	
 
 			//3. 완료됨이 확인되면 프레임단위로 촬영
-			/*while(1){
-			}*/
+			printf("if ready to store approach img press any key\n");
+			getch();
+			while(1){
+			}
 		}
 		else if(keyinput == (int)'q'){
 			break;
@@ -123,4 +128,28 @@ void writePointCloud(cv::Mat src, char* path, char* name){
 		for(int c = 0; c < src.channels(); c++)
 			fwrite(&src.at<Vec3f>(i)[c], sizeof(float), 1, fp);
 	fclose(fp);
+}
+
+void CreateApproachDir(const char* dir){
+	//원본, depth, point cloud, process img 저장을 위한 디렉토리 생성
+	TCHAR gestTDir[MAX_PATH] = {0, };
+	TCHAR RGBDDir[MAX_PATH] = {0,};
+	TCHAR DepthDir[MAX_PATH] = {0,};
+	TCHAR pointcloudDir[MAX_PATH] = {0,};
+	TCHAR procImgDir[MAX_PATH] = {0,};
+	char dirpath[256];
+	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, dir, strlen(dir), gestTDir, MAX_PATH);
+	CreateDirectory(gestTDir, NULL);															//create root directory
+	sprintf(dirpath, "%s\\RGB", dir);
+	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, dirpath, strlen(dirpath), RGBDDir, MAX_PATH);
+	CreateDirectory(RGBDDir, NULL);											//컬러 디렉토리 - 원본
+	sprintf(dirpath, "%s\\DEPTH", dir);
+	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, dirpath, strlen(dirpath), DepthDir, MAX_PATH);
+	CreateDirectory(DepthDir, NULL);											//뎁스 디렉토리 - 원본
+	sprintf(dirpath, "%s\\POINTCLOUD", dir);
+	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, dirpath, strlen(dirpath), pointcloudDir, MAX_PATH);
+	CreateDirectory(pointcloudDir, NULL);											//point cloud dir - 원본
+	sprintf(dirpath, "%s\\PROCIMG", dir);
+	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, dirpath, strlen(dirpath), procImgDir, MAX_PATH);
+	CreateDirectory(procImgDir, NULL);											//approaching point dir
 }
