@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <conio.h>
 
 #include "KinectMangerThread.h"
 #include "ColorBasedTracker.h"
@@ -7,6 +8,7 @@
 
 void CreateDatadir(const char* dir);
 void writeDepthData(cv::Mat src, char* path, char* name);
+void writePointCloud(cv::Mat src, char* path, char* name);
 
 int main(){
 	KinectMangerThread kinectManager;
@@ -32,10 +34,40 @@ int main(){
 	imwrite(backPath, rgbBack);							//rgb 배경저장
 	writeDepthData(depthBack, dataDir, "background");
 
-	//kinectManager.get
-
+	int gestIdx = 0;
 	while(!kinectManager.isThreadDead()){
-		
+		printf("store obj img : press 's', exit 'q'\n");
+		int keyinput = getch();
+
+		if(keyinput == (int)'s'){
+			cv::Mat objImg = kinectManager.getImg();
+			cv::Mat objdepth = kinectManager.getDepth();
+			cv::Mat objpc = kinectManager.getPointCloud();
+
+			//1. 저장하고
+			char objpath[256], filename[256];
+			sprintf(objpath, "%s\\RGB\\%d.bmp", dataDir, gestIdx);
+			cv::imshow(objpath, objImg);
+			imwrite(objpath, objImg);						//rgb write
+			sprintf(objpath, "%s\\DEPTH", dataDir);
+			itoa(gestIdx, filename, 10);
+			strcat(filename, ".bin");
+			writeDepthData(objdepth, objpath, filename);	//depthdata write
+			sprintf(objpath, "%s\\POINTCLOUD", dataDir);
+			writePointCloud(objpc, objpath, filename);
+
+			//2. 디렉토리 생성하고
+
+
+			//3. 완료됨이 확인되면 프레임단위로 촬영
+			/*while(1){
+			}*/
+		}
+		else if(keyinput == (int)'q'){
+			break;
+		}
+
+		gestIdx++;
 	}
 
 	kinectManager.Deinitialize();
@@ -76,5 +108,19 @@ void writeDepthData(cv::Mat src, char* path, char* name){
 	int Type = src.type();
 	fwrite(&Type, sizeof(int), 1, fp);
 	for(int i = 0; i < src.rows * src.cols; i++)		fwrite(&src.at<float>(i), sizeof(float), 1, fp);
+	fclose(fp);
+}
+
+void writePointCloud(cv::Mat src, char* path, char* name){
+	char buf[256];
+	sprintf(buf, "%s\\%s.bin", path, name);
+	FILE *fp = fopen(buf, "wb");
+	fwrite(&src.rows, sizeof(int), 1, fp);
+	fwrite(&src.cols, sizeof(int), 1, fp);
+	int Type = src.type();
+	fwrite(&Type, sizeof(int), 1, fp);
+	for(int i = 0; i < src.rows * src.cols; i++)
+		for(int c = 0; c < src.channels(); c++)
+			fwrite(&src.at<Vec3f>(i)[c], sizeof(float), 1, fp);
 	fclose(fp);
 }
