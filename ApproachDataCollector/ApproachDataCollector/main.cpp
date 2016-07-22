@@ -10,6 +10,7 @@ void CreateDatadir(const char* dir);
 void writeDepthData(cv::Mat src, char* path, char* name);
 void writePointCloud(cv::Mat src, char* path, char* name);
 void CreateApproachDir(const char* dir);
+void writeFrameData(const char* dir, cv::Mat RGB, cv::Mat depth, cv::Mat pc, cv::Mat procImg, int count);
 
 int main(){
 	KinectMangerThread kinectManager;
@@ -65,8 +66,12 @@ int main(){
 			//3. 완료됨이 확인되면 프레임단위로 촬영
 			printf("if ready to store approach img press any key\n");
 			getch();
-			while(1){
-			}
+
+			cv::Mat frameImg = kinectManager.getImg();
+			cv::Mat frameDepth = kinectManager.getDepth();
+			cv::Mat framepc = kinectManager.getPointCloud();
+
+			tracker.calcImage(frameImg, frameDepth);
 		}
 		else if(keyinput == (int)'q'){
 			break;
@@ -152,4 +157,18 @@ void CreateApproachDir(const char* dir){
 	sprintf(dirpath, "%s\\PROCIMG", dir);
 	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, dirpath, strlen(dirpath), procImgDir, MAX_PATH);
 	CreateDirectory(procImgDir, NULL);											//approaching point dir
+}
+
+void writeFrameData(const char* dir, cv::Mat RGB, cv::Mat depth, cv::Mat pc, cv::Mat procImg, int count){
+	//input : gesture dir 
+	char buf[256], countBuf[256];
+	itoa(count, countBuf, 10);
+	sprintf(buf, "%s\\RGB\\%d.bmp", dir, count);
+	cv::imwrite(buf, RGB);
+	sprintf(buf, "%s\\PROCIMG\\%d.bmp", dir, count);
+	cv::imwrite(buf, procImg);
+	sprintf(buf, "%s\\POINTCLOUD", dir);
+	writePointCloud(pc, buf, countBuf);
+	sprintf(buf, "%s\\DEPTH", dir);
+	writeDepthData(depth, buf, countBuf);
 }
