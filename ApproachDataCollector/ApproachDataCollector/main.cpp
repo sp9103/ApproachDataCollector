@@ -1,17 +1,20 @@
 #include <stdio.h>
 
 #include "KinectMangerThread.h"
+#include "ColorBasedTracker.h"
 
 #define DATAPATH "D:\\ApproachData"
 
 void CreateDatadir(const char* dir);
+void writeDepthData(cv::Mat src, char* path, char* name);
 
 int main(){
 	KinectMangerThread kinectManager;
+	ColorBasedTracker tracker;
 
 	cv::Rect RobotROI((KINECT_DEPTH_WIDTH - 160) / 2 + 40, (KINECT_DEPTH_HEIGHT- 160) / 2, 160, 160);
 	char className[256], dataDir[256];
-	cv::Mat rgbBack, depthBack;
+	cv::Mat rgbBack, depthBack, pcBack;
 
 	kinectManager.Initialize(RobotROI);
 
@@ -20,6 +23,15 @@ int main(){
 	sprintf(dataDir, "%s\\%s", DATAPATH, className);
 	CreateDatadir(dataDir);
 	//background write
+	char backPath[256];
+	sprintf(backPath, "%s\\background.bmp", dataDir);
+	rgbBack = kinectManager.getImg();
+	depthBack = kinectManager.getDepth();
+	pcBack = kinectManager.getPointCloud();
+	tracker.InsertBackGround(rgbBack, depthBack);		//tracker initialize
+	imwrite(backPath, rgbBack);							//rgb 배경저장
+	writeDepthData(depthBack, dataDir, "background");
+
 	//kinectManager.get
 
 	while(!kinectManager.isThreadDead()){
@@ -52,4 +64,17 @@ void CreateDatadir(const char* dir){
 	sprintf(dirpath, "%s\\APPROACH", dir);
 	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, dirpath, strlen(dirpath), approachDir, MAX_PATH);
 	mkdir_check = CreateDirectory(approachDir, NULL);											//approaching point dir
+}
+
+void writeDepthData(cv::Mat src, char* path, char* name){
+	//Depth Infomation write
+	char buf[256];
+	sprintf(buf, "%s\\%s.bin", path, name);
+	FILE *fp = fopen(buf, "wb");
+	fwrite(&src.rows, sizeof(int), 1, fp);
+	fwrite(&src.cols, sizeof(int), 1, fp);
+	int Type = src.type();
+	fwrite(&Type, sizeof(int), 1, fp);
+	for(int i = 0; i < src.rows * src.cols; i++)		fwrite(&src.at<float>(i), sizeof(float), 1, fp);
+	fclose(fp);
 }
