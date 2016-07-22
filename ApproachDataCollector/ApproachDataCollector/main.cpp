@@ -67,11 +67,20 @@ int main(){
 			printf("if ready to store approach img press any key\n");
 			getch();
 
-			cv::Mat frameImg = kinectManager.getImg();
-			cv::Mat frameDepth = kinectManager.getDepth();
-			cv::Mat framepc = kinectManager.getPointCloud();
+			int count = 0;
+			while(1){
+				cv::Mat frameImg = kinectManager.getImg();
+				cv::Mat frameDepth = kinectManager.getDepth();
+				cv::Mat framepc = kinectManager.getPointCloud();
+				cv::Mat frameprocImg = tracker.calcImage(frameImg, frameDepth);
 
-			tracker.calcImage(frameImg, frameDepth);
+				writeFrameData(gestDir, frameImg, frameDepth, framepc, frameprocImg, count++);
+
+				cv::imshow("proc", frameImg);
+				char cvKey = cv::waitKey(50);
+				if(cvKey == 'q')
+					break;
+			}
 		}
 		else if(keyinput == (int)'q'){
 			break;
