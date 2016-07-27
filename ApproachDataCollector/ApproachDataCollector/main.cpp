@@ -79,17 +79,23 @@ int main(){
 				cv::Mat frameImg = kinectManager.getImg();
 				cv::Mat frameDepth = kinectManager.getDepth();
 				cv::Mat framepc = kinectManager.getPointCloud();
-				cv::Mat frameprocImg = tracker.calcImage(frameImg, frameDepth);
-
-				if(frameprocImg.rows == 0)	continue;
-
-				printf("[%d] data save.\n", count);
-				writeFrameData(gestDir, frameImg, frameDepth, framepc, frameprocImg, count++);
+				cv::Mat objRmvRGB, objRmvDepth;
+				removeObj(rgbBack, depthBack, frameImg, frameDepth, objImg, objdepth, &objRmvRGB, &objRmvDepth);
+				cv::imshow("objRmv", objRmvRGB);
+				cv::Mat frameprocImg = tracker.calcImage(objRmvRGB, objRmvDepth);
 
 				cv::imshow("proc", frameImg);
 				char cvKey = cv::waitKey(50);
 				if(cvKey == 'q')
 					break;
+				else if(cvKey == 's'){
+					cv::waitKey(0);
+				}
+
+				if(frameprocImg.rows == 0)	continue;
+
+				printf("[%d] data save.\n", count);
+				writeFrameData(gestDir, frameImg, frameDepth, framepc, frameprocImg, count++);
 			}
 		}
 		else if(keyinput == (int)'q'){
@@ -192,12 +198,11 @@ void writeFrameData(const char* dir, cv::Mat RGB, cv::Mat depth, cv::Mat pc, cv:
 	writeDepthData(depth, buf, countBuf);
 }
 
-void removeObj(cv::Mat backRGB, cv::Mat BackDepth,
-			   cv::Mat frame, cv::Mat frameDepth,
-			   cv::Mat objRGB, cv::Mat objDepth,
-			   cv::Mat *dstColor, cv::Mat *dstDepth){
+void removeObj(cv::Mat backRGB, cv::Mat BackDepth, cv::Mat frame, cv::Mat frameDepth, cv::Mat objRGB, cv::Mat objDepth, cv::Mat *dstColor, cv::Mat *dstDepth){
 	const int rows = frame.rows;
 	const int cols = frame.cols;
+	const float threshold = 5;
+	const int cThreshold = 40;
 
 	dstColor->create(frame.rows, frame.cols, frame.type());
 	dstDepth->create(frameDepth.rows, frameDepth.cols, frameDepth.type());
@@ -215,6 +220,27 @@ void removeObj(cv::Mat backRGB, cv::Mat BackDepth,
 			float frameDepthval = frameDepth.at<float>(h,w);
 
 			float objSubDepth = abs(backDepthval - objDepthval);
+
+			//Depth 먼저 판별
+			if (backDepthval == 0 || objDepthval == 0){
+				dstColor->at<cv::Vec4b>(h, w) = frameval;
+				dstDepth->at<float>(h,w) = frameDepthval;
+				continue;
+			}
+			if (objSubDepth > threshold){
+				//color 비교
+				if (objSubRGB[0] < cThreshold && objSubRGB[1] < cThreshold && objSubRGB[2] < cThreshold){
+					dstColor->at<cv::Vec4b>(h, w) = frameval;
+					dstDepth->at<float>(h,w) = frameDepthval;
+				}
+				else{
+					dstColor->at<cv::Vec4b>(h, w) = backRGBval;
+					dstDepth->at<float>(h,w) = backDepthval;
+				}
+			}else{
+				dstColor->at<cv::Vec4b>(h, w) = frameval;
+				dstDepth->at<float>(h,w) = frameDepthval;
+			}
 		}
 	}
 }
