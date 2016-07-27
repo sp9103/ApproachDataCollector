@@ -11,6 +11,10 @@ void writeDepthData(cv::Mat src, char* path, char* name);
 void writePointCloud(cv::Mat src, char* path, char* name);
 void CreateApproachDir(const char* dir);
 void writeFrameData(const char* dir, cv::Mat RGB, cv::Mat depth, cv::Mat pc, cv::Mat procImg, int count);
+void removeObj(cv::Mat backRGB, cv::Mat BackDepth,
+			   cv::Mat objRGB, cv::Mat objDepth,
+			   cv::Mat frame, cv::Mat frameDepth,
+			   cv::Mat *dstColor, cv::Mat *dstDepth);
 
 int main(){
 	KinectMangerThread kinectManager;
@@ -27,6 +31,7 @@ int main(){
 	sprintf(dataDir, "%s\\%s", DATAPATH, className);
 	CreateDatadir(dataDir);
 	//background write
+	//1. background 저장하고
 	char backPath[256];
 	sprintf(backPath, "%s\\background.bmp", dataDir);
 	rgbBack = kinectManager.getImg();
@@ -35,6 +40,7 @@ int main(){
 	tracker.InsertBackGround(rgbBack, depthBack);		//tracker initialize
 	imwrite(backPath, rgbBack);							//rgb 배경저장
 	writeDepthData(depthBack, dataDir, "background");
+	printf("%d chan\n", rgbBack.channels());
 
 	int gestIdx = 0;
 	while(!kinectManager.isThreadDead()){
@@ -184,4 +190,31 @@ void writeFrameData(const char* dir, cv::Mat RGB, cv::Mat depth, cv::Mat pc, cv:
 	writePointCloud(pc, buf, countBuf);
 	sprintf(buf, "%s\\DEPTH", dir);
 	writeDepthData(depth, buf, countBuf);
+}
+
+void removeObj(cv::Mat backRGB, cv::Mat BackDepth,
+			   cv::Mat frame, cv::Mat frameDepth,
+			   cv::Mat objRGB, cv::Mat objDepth,
+			   cv::Mat *dstColor, cv::Mat *dstDepth){
+	const int rows = frame.rows;
+	const int cols = frame.cols;
+
+	dstColor->create(frame.rows, frame.cols, frame.type());
+	dstDepth->create(frameDepth.rows, frameDepth.cols, frameDepth.type());
+
+	for(int h = 0; h < rows; h++){
+		for(int w = 0; w < cols; w++){
+			cv::Vec4b backRGBval = backRGB.at<cv::Vec4b>(h,w);
+			cv::Vec4b objRGBval = objRGB.at<cv::Vec4b>(h,w);
+			cv::Vec4b frameval = frame.at<cv::Vec4b>(h,w);
+
+			cv::Vec4b objSubRGB = cv::Vec4b(abs(backRGBval[0] - objRGBval[0]), abs(backRGBval[1] - objRGBval[1]), abs(backRGBval[2] - objRGBval[2]), abs(backRGBval[3] - objRGBval[3]));
+
+			float backDepthval = BackDepth.at<float>(h,w);
+			float objDepthval = objDepth.at<float>(h,w);
+			float frameDepthval = frameDepth.at<float>(h,w);
+
+			float objSubDepth = abs(backDepthval - objDepthval);
+		}
+	}
 }
