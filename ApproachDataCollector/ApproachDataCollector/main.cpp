@@ -213,16 +213,16 @@ void removeObj(cv::Mat backRGB, cv::Mat BackDepth, cv::Mat frame, cv::Mat frameD
 			cv::Vec4b objRGBval = objRGB.at<cv::Vec4b>(h,w);
 			cv::Vec4b frameval = frame.at<cv::Vec4b>(h,w);
 
-			cv::Vec4b objSubRGB = cv::Vec4b(abs(backRGBval[0] - objRGBval[0]), abs(backRGBval[1] - objRGBval[1]), abs(backRGBval[2] - objRGBval[2]), abs(backRGBval[3] - objRGBval[3]));
+			cv::Vec4b objSubRGB = cv::Vec4b(abs(frameval[0] - objRGBval[0]), abs(frameval[1] - objRGBval[1]), abs(frameval[2] - objRGBval[2]), abs(frameval[3] - objRGBval[3]));
 
 			float backDepthval = BackDepth.at<float>(h,w);
 			float objDepthval = objDepth.at<float>(h,w);
 			float frameDepthval = frameDepth.at<float>(h,w);
 
-			float objSubDepth = abs(backDepthval - objDepthval);
+			float objSubDepth = abs(frameDepthval - objDepthval);
 
 			//Depth 먼저 판별
-			if (backDepthval == 0 || objDepthval == 0){
+			if (frameDepthval == 0 || objDepthval == 0){
 				dstColor->at<cv::Vec4b>(h, w) = frameval;
 				dstDepth->at<float>(h,w) = frameDepthval;
 				continue;
@@ -230,16 +230,16 @@ void removeObj(cv::Mat backRGB, cv::Mat BackDepth, cv::Mat frame, cv::Mat frameD
 			if (objSubDepth > threshold){
 				//color 비교
 				if (objSubRGB[0] < cThreshold && objSubRGB[1] < cThreshold && objSubRGB[2] < cThreshold){
-					dstColor->at<cv::Vec4b>(h, w) = frameval;
-					dstDepth->at<float>(h,w) = frameDepthval;
-				}
-				else{
 					dstColor->at<cv::Vec4b>(h, w) = backRGBval;
 					dstDepth->at<float>(h,w) = backDepthval;
 				}
+				else{
+					dstColor->at<cv::Vec4b>(h, w) = frameval;
+					dstDepth->at<float>(h,w) = frameDepthval;
+				}
 			}else{
-				dstColor->at<cv::Vec4b>(h, w) = frameval;
-				dstDepth->at<float>(h,w) = frameDepthval;
+				dstColor->at<cv::Vec4b>(h, w) = backRGBval;
+				dstDepth->at<float>(h,w) = backDepthval;
 			}
 		}
 	}
